@@ -30,7 +30,7 @@
 #include <kern/priority_queue.h>
 #include <mach/vm_param.h>
 
-#ifdef __LP64__
+#if defined(__LP64__) && !__arm64__
 static_assert(PRIORITY_QUEUE_ENTRY_CHILD_BITS >= VM_KERNEL_POINTER_SIGNIFICANT_BITS,
     "Priority Queue child pointer packing failed");
 #endif
@@ -129,6 +129,9 @@ struct pqueue {
 	pack_child(entry_t e, const entry_t child)
 	{
 		e->child = (long)child;
+#ifdef DEBUG
+		assert(child == unpack_child(e));
+#endif // DEBUG
 	}
 
 	static inline entry_t
