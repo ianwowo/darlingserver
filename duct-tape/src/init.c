@@ -107,6 +107,12 @@ void dtape_init(const dtape_hooks_t* hooks) {
 	dtape_log_debug("clock_init");
 	clock_init();
 
+#if CONFIG_THREAD_GROUPS
+	printf("thread_group_init...");
+	thread_group_init();
+	printf("done\n");
+#endif
+
 	dtape_log_debug("turnstiles_init");
 	turnstiles_init();
 

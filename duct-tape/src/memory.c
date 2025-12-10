@@ -234,6 +234,10 @@ void* zalloc(zone_or_view_t zone_or_view) {
 	return malloc(zone_or_view.zov_zone->size);
 };
 
+void* zalloc_aligned(zone_or_view_t zone_or_view, size_t alignment) {
+	return aligned_alloc(zone_or_view.zov_zone->size, alignment);
+};
+
 void* zalloc_flags(zone_or_view_t zone_or_view, zalloc_flags_t flags) {
 	void* ptr = zalloc(zone_or_view);
 	if (!ptr) {

@@ -369,6 +369,7 @@ set(darlingserver_duct_tape_source ${darlingserver_duct_tape_source}
 elseif (TARGET_ARM64)
 set(darlingserver_duct_tape_source ${darlingserver_duct_tape_source}
 	xnu/osfmk/arm/rtclock.c
+	xnu/osfmk/kern/thread_group.c # needed if CONFIG_THREAD_GROUPS set to 1 in duct-tape/xnu/osfmk/arm/proc_reg.h
 )
 endif()
 

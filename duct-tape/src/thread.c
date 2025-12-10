@@ -2194,3 +2194,142 @@ ux_exception(int                        exception,
 }
 
 // </copied>
+
+#if CONFIG_THREAD_GROUPS
+
+// copied from arm/machine_routines.c
+
+static void sched_perfcontrol_thread_group_default(thread_group_data_t data __unused)
+{
+}
+
+static void sched_perfcontrol_thread_group_blocked_default(
+	__unused thread_group_data_t blocked_tg, __unused thread_group_data_t blocking_tg,
+	__unused uint32_t flags, __unused perfcontrol_state_t blocked_thr_state)
+{
+}
+
+static void sched_perfcontrol_thread_group_unblocked_default(
+	__unused thread_group_data_t unblocked_tg, __unused thread_group_data_t unblocking_tg,
+	__unused uint32_t flags, __unused perfcontrol_state_t unblocked_thr_state)
+{
+}
+
+sched_perfcontrol_thread_group_init_t           sched_perfcontrol_thread_group_init = sched_perfcontrol_thread_group_default;
+sched_perfcontrol_thread_group_deinit_t         sched_perfcontrol_thread_group_deinit = sched_perfcontrol_thread_group_default;
+sched_perfcontrol_thread_group_blocked_t        sched_perfcontrol_thread_group_blocked = sched_perfcontrol_thread_group_blocked_default;
+sched_perfcontrol_thread_group_unblocked_t      sched_perfcontrol_thread_group_unblocked = sched_perfcontrol_thread_group_unblocked_default;
+
+void
+machine_thread_group_init(struct thread_group *tg)
+{
+	if (sched_perfcontrol_thread_group_init == sched_perfcontrol_thread_group_default) {
+		return;
+	}
+	struct thread_group_data data;
+	data.thread_group_id = thread_group_get_id(tg);
+	data.thread_group_data = thread_group_get_machine_data(tg);
+	data.thread_group_size = thread_group_machine_data_size();
+	data.thread_group_flags = thread_group_get_flags(tg);
+	sched_perfcontrol_thread_group_init(&data);
+}
+
+void
+machine_thread_group_deinit(struct thread_group *tg)
+{
+	if (sched_perfcontrol_thread_group_deinit == sched_perfcontrol_thread_group_default) {
+		return;
+	}
+	struct thread_group_data data;
+	data.thread_group_id = thread_group_get_id(tg);
+	data.thread_group_data = thread_group_get_machine_data(tg);
+	data.thread_group_size = thread_group_machine_data_size();
+	data.thread_group_flags = thread_group_get_flags(tg);
+	sched_perfcontrol_thread_group_deinit(&data);
+}
+
+void
+machine_thread_group_blocked(struct thread_group *blocked_tg,
+    struct thread_group *blocking_tg,
+    uint32_t flags,
+    thread_t blocked_thread)
+{
+	if (sched_perfcontrol_thread_group_blocked == sched_perfcontrol_thread_group_blocked_default) {
+		return;
+	}
+
+	spl_t s = splsched();
+
+	perfcontrol_state_t state = FIND_PERFCONTROL_STATE(blocked_thread);
+	struct thread_group_data blocked_data;
+	assert(blocked_tg != NULL);
+
+	blocked_data.thread_group_id = thread_group_get_id(blocked_tg);
+	blocked_data.thread_group_data = thread_group_get_machine_data(blocked_tg);
+	blocked_data.thread_group_size = thread_group_machine_data_size();
+
+	if (blocking_tg == NULL) {
+		/*
+		 * For special cases such as the render server, the blocking TG is a
+		 * well known TG. Only in that case, the blocking_tg should be NULL.
+		 */
+		assert(flags & PERFCONTROL_CALLOUT_BLOCKING_TG_RENDER_SERVER);
+		sched_perfcontrol_thread_group_blocked(&blocked_data, NULL, flags, state);
+	} else {
+		struct thread_group_data blocking_data;
+		blocking_data.thread_group_id = thread_group_get_id(blocking_tg);
+		blocking_data.thread_group_data = thread_group_get_machine_data(blocking_tg);
+		blocking_data.thread_group_size = thread_group_machine_data_size();
+		sched_perfcontrol_thread_group_blocked(&blocked_data, &blocking_data, flags, state);
+	}
+	KDBG(MACHDBG_CODE(DBG_MACH_THREAD_GROUP, MACH_THREAD_GROUP_BLOCK) | DBG_FUNC_START,
+	    thread_tid(blocked_thread), thread_group_get_id(blocked_tg),
+	    blocking_tg ? thread_group_get_id(blocking_tg) : THREAD_GROUP_INVALID,
+	    flags);
+
+	splx(s);
+}
+
+void
+machine_thread_group_unblocked(struct thread_group *unblocked_tg,
+    struct thread_group *unblocking_tg,
+    uint32_t flags,
+    thread_t unblocked_thread)
+{
+	if (sched_perfcontrol_thread_group_unblocked == sched_perfcontrol_thread_group_unblocked_default) {
+		return;
+	}
+
+	spl_t s = splsched();
+
+	perfcontrol_state_t state = FIND_PERFCONTROL_STATE(unblocked_thread);
+	struct thread_group_data unblocked_data;
+	assert(unblocked_tg != NULL);
+
+	unblocked_data.thread_group_id = thread_group_get_id(unblocked_tg);
+	unblocked_data.thread_group_data = thread_group_get_machine_data(unblocked_tg);
+	unblocked_data.thread_group_size = thread_group_machine_data_size();
+
+	if (unblocking_tg == NULL) {
+		/*
+		 * For special cases such as the render server, the unblocking TG is a
+		 * well known TG. Only in that case, the unblocking_tg should be NULL.
+		 */
+		assert(flags & PERFCONTROL_CALLOUT_BLOCKING_TG_RENDER_SERVER);
+		sched_perfcontrol_thread_group_unblocked(&unblocked_data, NULL, flags, state);
+	} else {
+		struct thread_group_data unblocking_data;
+		unblocking_data.thread_group_id = thread_group_get_id(unblocking_tg);
+		unblocking_data.thread_group_data = thread_group_get_machine_data(unblocking_tg);
+		unblocking_data.thread_group_size = thread_group_machine_data_size();
+		sched_perfcontrol_thread_group_unblocked(&unblocked_data, &unblocking_data, flags, state);
+	}
+	KDBG(MACHDBG_CODE(DBG_MACH_THREAD_GROUP, MACH_THREAD_GROUP_BLOCK) | DBG_FUNC_END,
+	    thread_tid(unblocked_thread), thread_group_get_id(unblocked_tg),
+	    unblocking_tg ? thread_group_get_id(unblocking_tg) : THREAD_GROUP_INVALID,
+	    flags);
+
+	splx(s);
+}
+
+#endif

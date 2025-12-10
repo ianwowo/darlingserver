@@ -232,7 +232,7 @@ thread_group_create_and_retain(void)
 {
 	struct thread_group *tg;
 
-	tg = (struct thread_group *)zalloc(tg_zone);
+	tg = (struct thread_group *)zalloc_aligned(tg_zone, CACHELINE_SIZE);
 	if (tg == NULL) {
 		panic("thread group zone over commit");
 	}

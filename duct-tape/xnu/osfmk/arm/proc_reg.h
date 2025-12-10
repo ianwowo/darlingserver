@@ -153,7 +153,7 @@
 #endif /* CONFIG_CLUTCH */
 
 /* Thread groups are enabled on all ARM platforms (irrespective of scheduler) */
-#define CONFIG_THREAD_GROUPS 1
+#define CONFIG_THREAD_GROUPS 0 // disabled for arm too. Missing functions added so it will compile but not tested.
 
 #ifdef XNU_KERNEL_PRIVATE
 

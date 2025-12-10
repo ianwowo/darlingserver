@@ -367,8 +367,9 @@ processor_info_count(
 
 // </copied>
 
-// <copied from="xnu://7195.141.2/osfmk/i386/cpu.c">
+#if CONFIG_THREAD_GROUPS==0
 
+// <copied from="xnu://7195.141.2/osfmk/i386/cpu.c">
 /*ARGSUSED*/
 kern_return_t
 cpu_info_count(
@@ -379,4 +380,31 @@ cpu_info_count(
 	return KERN_FAILURE;
 }
 
-// </copied>
+#elif CONFIG_THREAD_GROUPS==1
+
+#include <arm/cpu_data.h>
+#include <arm/cpu_data_internal.h>
+
+kern_return_t cpu_info_count(processor_flavor_t flavor, unsigned int *count)
+{
+	switch (flavor) {
+	case PROCESSOR_CPU_STAT:
+		*count = PROCESSOR_CPU_STAT_COUNT;
+		return KERN_SUCCESS;
+
+	case PROCESSOR_CPU_STAT64:
+		*count = PROCESSOR_CPU_STAT64_COUNT;
+		return KERN_SUCCESS;
+
+	default:
+		*count = 0;
+		return KERN_FAILURE;
+	}
+}
+
+boolean_t PE_get_default(const char *property_name, void *property_ptr, unsigned int max_property)
+{// src/external/xnu/pexpert/gen/bootargs.c
+	dtape_stub_safe();
+	return FALSE;
+}
+#endif // CONFIG_THREAD_GROUPS
