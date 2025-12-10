@@ -1567,8 +1567,11 @@ VM_MAP_IS_EXOTIC(
 	vm_map_t map __unused)
 {
 #if __arm64__
-	if (VM_MAP_PAGE_SHIFT(map) < PAGE_SHIFT ||
-	    pmap_is_exotic(map->pmap)) {
+	#warning "__arm64__ map->pmap not defined"
+	__simple_printf("STUB: VM_MAP_IS_EXOTIC map->pmap not defined\n");
+	if (VM_MAP_PAGE_SHIFT(map) < PAGE_SHIFT)
+	    /* || pmap_is_exotic(map->pmap)) */
+	{
 		return true;
 	}
 #endif /* __arm64__ */
